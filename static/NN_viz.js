@@ -23,23 +23,29 @@ var Neuron = function (location, bias, value) {
     //Set location, any initial value (for inputs), bias
     this.location = location || createVector(location[0], location[1]);
     this.connections = [];
+    this.backconnects = [];
     this.val = value || 0;
     this.bias = bias || random(-1, 1);
     this.acc = 0;
     this.incoming = 0;
     this.sig;
+    this.learningRate = .01;
 
     //physical size
     this.r = 32;
 
     
-    this.addConnection = function (c) {
+    this.addConnection = function(c) {
         this.connections.push(c);
         c.b.incoming++;
     }  
+
+    this.backConnect = function(c) {
+        this.backconnects.push(c);
+    }
   
   // Receive an input
-  this.feedforward = function (input) {
+  this.feedforward = function(input) {
     // Accumulate it
     this.val += input;
     this.acc++;
@@ -55,6 +61,22 @@ var Neuron = function (location, bias, value) {
         }
       this.val = 0;
     } 
+  }
+
+  //Backpropagate
+  this.backprop = function(grad) {
+    //takes in the calculated gradiant leading to this node
+
+    //derivative of sigmoid
+    dsig = ((1 - this.sig) * this.sig) * grad;
+
+    //update bias
+    this.bias += (-this.learningRate * db)
+
+    //send update for weight
+    for (bc in backconnects) {
+        this.backconnects[bc].backprop(dsig);
+    }
   }
   
   this.fire = function() {
@@ -75,14 +97,18 @@ var Neuron = function (location, bias, value) {
     b = map(this.val,0,1,255,0);
     fill(b);
     ellipse(this.location.x, this.location.y, this.r, this.r);
+    if (this.backconnects.length != 0) {
+        push();
+            fill(0, 102, 153);
+            text(Math.round(this.bias * 1000) / 1000, this.location.x - 15, this.location.y + 35);
+        pop();
+    }
     if (this.sig){
         push();
             fill(0, 102, 153);
             text(this.sig.toString(), this.location.x, this.location.y-32);
         pop();
     }
-
-    //Will want to add numbers floating
     
     // Shrink interpolation
     this.r = lerp(this.r,32,0.1);
@@ -101,13 +127,26 @@ var Connection = function(a, b, weight) {
   this.sending = false;
   this.output = 0;
   this.sender = createVector(this.a.x, this.a.y);
+  this.learningRate = .01;
+  this.lastVal;
   
   // The Connection is active
   this.feedforward = function(val) {
+    this.lastVal = val;
     this.output = val*this.weight;        // Compute output
     this.sender.x = this.a.location.x;
     this.sender.y = this.a.location.y;
     this.sending = true;             // Turn on sending
+  }
+
+  //Backpropagation of weight
+  this.backprop = function(grad) {
+    //Accepts gradient coming from prior node
+    dw = this.lastVal * grad;
+    da = this.weight * grad;
+    this.weight += -this.learningRate * dw;
+    this.a.backprop(da);
+
   }
   
   // Update traveling sender
@@ -131,6 +170,19 @@ var Connection = function(a, b, weight) {
     stroke(0);
     strokeWeight(1+(this.weight*4));
     line(this.a.location.x, this.a.location.y, this.b.location.x, this.b.location.y);
+    fill(0);
+    push();
+        angle = p5.Vector.angleBetween(this.a.location, this.b.location);
+        strokeWeight(1);
+        translate(((this.b.location.x - this.a.location.x)/5.0) + this.a.location.x
+            ,((this.b.location.y - this.a.location.y)/5.0)+this.a.location.y);
+        if (this.a.location.y > this.b.location.y) {
+            rotate(-angle);
+        } else {
+            rotate(angle);
+        }
+        text(Math.round(this.weight*1000)/1000,25,0);
+    pop();
 
     if (this.sending) {
       fill(0);
@@ -140,15 +192,29 @@ var Connection = function(a, b, weight) {
   }
 }
 
-var Network = function (inBoxes, neurons, connections, location) { 
+var Network = function (inBoxes, layers, neurons, connections, location) { 
   
   // The Network has a list of neurons
   this.state = 'forward'
   this.neurons = neurons || [];
   this.connections = connections || [];
   this.location = location || createVector(0, 0);
-  this.learningRate = .01;
   this.inBoxes = inBoxes || [];
+  this.layers = layers || [];
+  this.targetlocs = [];
+  this.targets = [0, 1, 0];
+  this.outputs = [];
+
+  this.createTargets = function () {
+
+      for (i=this.layers[this.layers.length - 1]; i>0; i--){
+        loc = this.neurons[this.neurons.length - 4 + i].location;
+        newloc = createVector(loc.x + 120, loc.y);
+        this.targetlocs[i - 1] = newloc;
+        //Bootstrapping this to keep track of outputs
+        this.outputs[i - 1] = this.neurons[this.neurons.length - 4 + i];
+      }
+    }
 
   // We can add a Neuron
   this.addNeuron = function (n) {
@@ -159,8 +225,11 @@ var Network = function (inBoxes, neurons, connections, location) {
   this.connect = function (a, b, weight) {
     c = new Connection(a, b, weight);
     a.addConnection(c);
+    d = new Connection(b, a, weight);
+    b.backConnect(d);
     this.connections.push(c);
   } 
+
   
   // Sending an input to the first Neuron
   // We should do something better to track multiple inputs
@@ -175,6 +244,32 @@ var Network = function (inBoxes, neurons, connections, location) {
     n3.fire();
     
   }
+
+  //Backward prop
+  this.backprop = function() {
+    //Get predictions and prep softmax normalization
+    outs = [];
+    sum = 0;
+    for (i in this.outputs){
+        outs[i] = this.outputs[i].sig;
+        sum += Math.exp(outs[i]);
+    }
+
+    //normalize and gradient of loss (softmax)
+    douts = [];
+    for (i in outs) {
+        outs[i] = Math.exp(outs[i]) / sum;
+        if (targets[i] == 1){
+            douts[i] = outs[i] - 1;
+        } else {
+            douts[i] = outs[i];
+        }
+    }
+    //pass loss values onto neurons for dw,db calcs
+    for (i in this.outputs) {
+        this.outputs.backprop(dout[i]);
+    }
+  }
   
   // Update the animation
   this.update = function() {
@@ -186,15 +281,38 @@ var Network = function (inBoxes, neurons, connections, location) {
   
   // Draw everything
   this.display = function() {
-    push();
-        translate(this.location.x, this.location.y);
-        for (n in this.neurons) {
-          this.neurons[n].display();
-        }
+    if (this.state == 'forward'){
+        push();
+            translate(this.location.x, this.location.y);
+            for (n in this.neurons) {
+              this.neurons[n].display();
+            }
 
-        for (c in this.connections) {
-          this.connections[c].display();
+            for (c in this.connections) {
+              this.connections[c].display();
+            }
+        pop();
+    } else if (this.state == 'backward') {
+        push();
+            translate(this.location.x, this.location.y);
+            for (n in this.neurons) {
+              this.neurons[n].backdisplay();
+            }
+
+            for (c in this.connections) {
+              this.connections[c].backdisplay();
+            }
+        pop();
+
+    }
+    push();
+        fill(0);
+        for (t in this.targets) {
+            textSize(32);
+            text(this.targets[t], this.targetlocs[t].x, this.targetlocs[t].y);
         }
+        textSize(42);
+        text("Targets", this.targetlocs[0].x - 40, this.targetlocs[0].y - 50);
     pop();
   }
 }
@@ -206,7 +324,7 @@ function add(a, b) {
 function setup() {
     var myCanvas = createCanvas(windowWidth, windowHeight);
     myCanvas.parent('processing');
-    var layers = [3, 2, 1];
+    var layers = [3, 2, 3];
     //var numNeurons = layers.reduce(add);
     var neurons = [[], [], []];
     var forward = createButton('Forward');
@@ -220,12 +338,11 @@ function setup() {
     //Setting up text boxes for the input layers
     var inLayers = [];
     for (i = 0; i<layers[0]; i++){
-        input = createInput(random(-10, 10));
+        input = createInput(random(-1, 1));
         inLayers[i] = input;
     }
 
-    myNetwork = new Network(inLayers);
-
+    myNetwork = new Network(inLayers, layers);
 
     //Create Neurons in order
     var currLayer = 0;
@@ -237,7 +354,7 @@ function setup() {
 
             if (currLayer == 1) {
                 input = inLayers[j];
-                input.position(x-14, y-32);
+                input.position(x-100, y-32);
                 n = new Neuron(createVector(x,y), random(-1, 1), input.value());
                 neurons[currLayer-1].push(n);
                 myNetwork.addNeuron(n);
@@ -259,6 +376,9 @@ function setup() {
         }
     }
 
+    myNetwork.createTargets();
+
+
 }
 
 function draw() {
@@ -268,6 +388,7 @@ function draw() {
 }
 
 function goForth() {
+    myNetwork.state = 'forward';
     newVals = [];
     for (i in myNetwork.inBoxes) {
         myNetwork.neurons[i].val = myNetwork.inBoxes[i].value();
@@ -276,6 +397,7 @@ function goForth() {
 }
 
 function backProp() {
+    myNetwork.state = 'backward'
     background(255);
     myNetwork.backdate();
     myNetwork.display();
