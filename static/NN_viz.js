@@ -174,14 +174,15 @@ var Connection = function(a, b, weight) {
     push();
         angle = p5.Vector.angleBetween(this.a.location, this.b.location);
         strokeWeight(1);
-        translate(((this.b.location.x - this.a.location.x)/5.0) + this.a.location.x
-            ,((this.b.location.y - this.a.location.y)/5.0)+this.a.location.y);
+        translate(((this.b.location.x + this.a.location.x)/2.0)
+            ,((this.b.location.y + this.a.location.y)/2.0));
         if (this.a.location.y > this.b.location.y) {
             rotate(-angle);
         } else {
             rotate(angle);
         }
-        text(Math.round(this.weight*1000)/1000,25,0);
+        fill(251, 199, 255);
+        text(Math.round(this.weight*1000)/1000,0,0);
     pop();
 
     if (this.sending) {
@@ -338,7 +339,8 @@ function setup() {
     //Setting up text boxes for the input layers
     var inLayers = [];
     for (i = 0; i<layers[0]; i++){
-        input = createInput(random(-1, 1));
+        rando = Math.round(random(-1,1)*1000)/1000.0;
+        input = createInput(rando);
         inLayers[i] = input;
     }
 
