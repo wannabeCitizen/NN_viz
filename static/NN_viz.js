@@ -29,7 +29,7 @@ var Neuron = function (location, bias, value) {
     this.acc = 0;
     this.incoming = 0;
     this.sig;
-    this.learningRate = .01;
+    this.learningRate = .1;
     //For backprop stuff
 
 
@@ -105,13 +105,13 @@ var Neuron = function (location, bias, value) {
     if (this.backconnects.length != 0) {
         push();
             fill(0, 102, 153);
-            text(Math.round(this.bias * 10000) / 10000, this.location.x - 15, this.location.y + 35);
+            text("b= "+Math.round(this.bias * 10000) / 10000, this.location.x - 30, this.location.y + 35);
         pop();
     }
     if (this.sig){
         push();
             fill(0, 102, 153);
-            text(this.sig.toString(), this.location.x, this.location.y-32);
+            text("\u03c3= "+Math.round(this.sig * 1000000)/1000000, this.location.x - 30, this.location.y-32);
         pop();
     }
     this.r = lerp(this.r, 32, 0.1);
@@ -127,13 +127,13 @@ var Neuron = function (location, bias, value) {
     if (this.backconnects.length != 0) {
         push();
             fill(0, 102, 153);
-            text(Math.round(this.bias * 10000) / 10000, this.location.x - 15, this.location.y + 35);
+            text("b= "+Math.round(this.bias * 10000) / 10000, this.location.x - 30, this.location.y + 35);
         pop();
     }
     if (this.sig){
         push();
             fill(0, 102, 153);
-            text(this.sig.toString(), this.location.x, this.location.y-32);
+            text("\u03c3= "+Math.round(this.sig * 1000000)/1000000, this.location.x - 30, this.location.y-32);
         pop();
     }
     
