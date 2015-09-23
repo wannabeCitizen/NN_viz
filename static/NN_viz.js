@@ -1,11 +1,13 @@
 //Michael Skirpan - Fast Forward Labs
-//Visualization of simple Feed-forward and backpropagation algorithm
+//Visualization of Simple Feed-forward Neural Network Using Backpropagation Algorithm
 //Many thanks to:
 //Daniel Shiffman - http://natureofcode.com - for education and example code
 //P5.js folks - http://p5js.org - for example code
 //Michael Nielson - http://neuralnetworksanddeeplearning.com/ - for lucid explanations of algorithms
+//Andrej Karpathy - https://cs231n.github.io - for great attention to backpropagtion 
 
 var myNetwork;
+var batchIn;
 
 function sigmoid(z){
     return 1.0/(1.0+Math.exp(-z));
@@ -30,6 +32,7 @@ var Neuron = function (location, bias, value) {
     this.incoming = 0;
     this.sig;
     this.learningRate = .1;
+    this.batch = false;
     //For backprop stuff
 
 
@@ -67,8 +70,6 @@ var Neuron = function (location, bias, value) {
   //Backpropagate
   this.backprop = function(grad) {
     //takes in the calculated gradiant leading to this node
-    console.log('neuron backprop');
-
     //derivative of sigmoid
     dsig = ((1 - this.sig) * this.sig) * grad;
 
@@ -79,8 +80,15 @@ var Neuron = function (location, bias, value) {
     this.r = 12;
 
     //send update for weight
-    for (bc in this.backconnects) {
-        this.backconnects[bc].backprop(dsig);
+    if (this.batch){
+        for (bc in this.backconnects) {
+            this.backconnects[bc].batch = true;
+            this.backconnects[bc].backprop(dsig);
+        }
+    } else {
+        for (bc in this.backconnects) {
+            this.backconnects[bc].backprop(dsig);
+        }
     }
   }
   
@@ -90,18 +98,26 @@ var Neuron = function (location, bias, value) {
 
     
     // We send the output through all connections
-    for (c in this.connections) {
-       this.connections[c].feedforward(this.val);
-    } 
+    if (this.batch) {
+        for (c in this.connections) {
+            this.connections[c].batch = true;
+           this.connections[c].feedforward(this.val);
+        } 
+    } else {
+        for (c in this.connections){
+            this.connections[c].feedforward(this.val);
+        }
+    }
   }
 
   this.backDisplay = function() {
     stroke(0);
     strokeWeight(1);
-    // Brightness is mapped to sum
-    b = map(this.val,0,1,255,0);
-    fill(b);
-    ellipse(this.location.x, this.location.y, this.r, this.r);
+    push();
+        strokeWeight(3);
+        fill('rgba(127,47,155, .2)');
+        ellipse(this.location.x, this.location.y, this.r, this.r);
+    pop();
     if (this.backconnects.length != 0) {
         push();
             fill(0, 102, 153);
@@ -120,10 +136,11 @@ var Neuron = function (location, bias, value) {
   this.display = function() {
     stroke(0);
     strokeWeight(1);
-    // Brightness is mapped to sum
-    b = map(this.val,0,1,255,0);
-    fill(b);
-    ellipse(this.location.x, this.location.y, this.r, this.r);
+    push();
+        strokeWeight(3);
+        fill('rgba(0, 220, 236, .2)');
+        ellipse(this.location.x, this.location.y, this.r, this.r);
+    pop();
     if (this.backconnects.length != 0) {
         push();
             fill(0, 102, 153);
@@ -154,9 +171,10 @@ var Connection = function(a, b, weight) {
   this.sending = false;
   this.output = 0;
   this.sender = createVector(this.a.x, this.a.y);
-  this.learningRate = .1;
+  this.learningRate = .3;
   this.lastVal;
   this.backing = false;
+  this.batch = false;
   //For backprop 
   this.da;
   this.dw;
@@ -168,20 +186,28 @@ var Connection = function(a, b, weight) {
     this.sender.x = this.a.location.x;
     this.sender.y = this.a.location.y;
     this.sending = true;             // Turn on sending
+    if (this.batch) {
+        this.b.feedforward(this.output);
+        this.sending = false;
+        this.batch = false;
+
+    }
   }
 
   //Backpropagation of weight
   this.backprop = function(grad) {
     //Accepts gradient coming from prior node
-    console.log('connection backprop');
     this.dw = this.lastVal * grad;
     this.da = this.weight * grad;
     this.weight += -this.learningRate * this.dw;
     this.sender.x = this.b.location.x;
     this.sender.y = this.b.location.y;
     this.backing = true;
-    console.log(this);
-    console.log(this.backing);
+    if (this.batch) {
+        this.a.backprop(this.da);
+        this.backing = false;
+        this.batch = false;
+    }
 
   }
   
@@ -199,12 +225,10 @@ var Connection = function(a, b, weight) {
         this.sending = false;
       }
     } else if (this.backing) {
-        console.log('updating connection');
         this.sender.x = lerp(this.sender.x, this.a.location.x, 0.1);
         this.sender.y = lerp(this.sender.y, this.a.location.y, 0.1);
         dist = p5.Vector.dist(this.sender, this.a.location);
         if (dist < 1) {
-            console.log('about to backprop connection');
             this.a.backprop(this.da);
             this.backing = false;
         }
@@ -213,8 +237,15 @@ var Connection = function(a, b, weight) {
 
   this.backDisplay = function () {
     stroke(0);
-    strokeWeight(1+(this.weight*4));
-    line(this.a.location.x, this.a.location.y, this.b.location.x, this.b.location.y);
+    push();
+        strokeWeight(3);
+        seed = map(this.weight, -1, 1, 0, 1);
+        from = color(42, 71, 255);
+        to = color(229, 119, 73);
+        hue = lerpColor(from, to, seed);
+        stroke(hue);
+        line(this.a.location.x, this.a.location.y, this.b.location.x, this.b.location.y);
+    pop();
     fill(0);
 
     push();
@@ -229,12 +260,12 @@ var Connection = function(a, b, weight) {
         }
         fill(255, 111, 99);
         textSize(18);
-        text(Math.round(this.weight*10000)/10000,0,0);
+        strokeWeight(3);
+        text(Math.round(this.weight*10000)/10000,-20,0);
     pop();
 
     if (this.backing) {
         //moving elipse backwards
-        console.log('should be showing ellipse');
         fill(127,47,155);
         strokeWeight(1);
         ellipse(this.sender.x, this.sender.y, 16, 16);
@@ -245,8 +276,15 @@ var Connection = function(a, b, weight) {
   // Draw line and traveling circle
   this.display = function() {
     stroke(0);
-    strokeWeight(1+(this.weight*4));
-    line(this.a.location.x, this.a.location.y, this.b.location.x, this.b.location.y);
+    push();
+        strokeWeight(3);
+        seed = map(this.weight, -1, 1, 0, 1);
+        from = color(42, 71, 255);
+        to = color(229, 119, 73);
+        hue = lerpColor(from, to, seed);
+        stroke(hue);
+        line(this.a.location.x, this.a.location.y, this.b.location.x, this.b.location.y);
+    pop();
     fill(0);
     push();
         angle = p5.Vector.angleBetween(this.a.location, this.b.location);
@@ -258,13 +296,14 @@ var Connection = function(a, b, weight) {
         } else {
             rotate(angle);
         }
-        fill(0, 198, 229);
+        fill(37, 219, 90);
         textSize(18);
-        text(Math.round(this.weight*10000)/10000,0,0);
+        strokeWeight(3);
+        text(Math.round(this.weight*10000)/10000,-20,0);
     pop();
 
     if (this.sending) {
-      fill(127,47,155);
+      fill(0, 220, 236);
       strokeWeight(1);
       ellipse(this.sender.x, this.sender.y, 16, 16);
     }
@@ -312,14 +351,29 @@ var Network = function (inBoxes, layers, neurons, connections, location) {
   // Sending an input to the first Neuron
   // We should do something better to track multiple inputs
   this.feedforward = function() {
-    n1 = this.neurons[0];
-    n1.fire();
-    
-    n2 = this.neurons[1];
-    n2.fire();
+    if (this.state == 'batch'){
+        console.log("batch forward Network");
+        n1 = this.neurons[0];
+        n1.batch = true;
+        n1.fire();
+        
+        n2 = this.neurons[1];
+        n2.batch = true;
+        n2.fire();
 
-    n3 = this.neurons[2];
-    n3.fire();
+        n3 = this.neurons[2];
+        n3.batch = true;
+        n3.fire();
+    } else {
+        n1 = this.neurons[0];
+        n1.fire();
+        
+        n2 = this.neurons[1];
+        n2.fire();
+
+        n3 = this.neurons[2];
+        n3.fire();
+    }
     
   }
 
@@ -344,19 +398,26 @@ var Network = function (inBoxes, layers, neurons, connections, location) {
         }
     }
     //pass loss values onto neurons for dw,db calcs
-    for (i in this.outputs) {
-        this.outputs[i].backprop(douts[i]);
+    if (this.state == 'batch'){
+        for (i in this.outputs) {
+            this.outputs[i].batch = true;
+            this.outputs[i].backprop(douts[i]);
+        }
+    } else {
+        for (i in this.outputs) {
+            this.outputs[i].backprop(douts[i]);
+        }
     }
   }
   
-  // Update the animation
+  // Update the connections
   this.update = function() {
-    // Update backprop, eventually
+
     for (c in this.connections) {
       this.connections[c].update();
     }
+    
   }
-  
 
   // Draw everything
   this.display = function() {
@@ -388,7 +449,7 @@ var Network = function (inBoxes, layers, neurons, connections, location) {
         fill(0);
         for (t in this.targets) {
             textSize(32);
-            text(this.targets[t], this.targetlocs[t].x, this.targetlocs[t].y);
+            text(this.targets[t], this.targetlocs[t].x + 26, this.targetlocs[t].y);
         }
         textSize(42);
         text("Targets", this.targetlocs[0].x - 40, this.targetlocs[0].y - 50);
@@ -406,12 +467,19 @@ function setup() {
     var layers = [3, 2, 3];
     //var numNeurons = layers.reduce(add);
     var neurons = [[], [], []];
+
+    //Make these percentages later
     var forward = createButton('Forward');
-    forward.position(windowWidth - 500, windowHeight - 50);
+    forward.position(windowWidth - 600, windowHeight - 50);
     forward.mousePressed(goForth);
     var backward = createButton('Backprop');
     backward.position(windowWidth - 800, windowHeight - 50);
     backward.mousePressed(backProp);
+    var batch = createButton('Batch');
+    batchIn = createInput(20);
+    batchIn.position(windowWidth - 300, windowHeight - 50);
+    batch.position(windowWidth - 400, windowHeight - 50);
+    batch.mousePressed(batchTime);
 
 
     //Setting up text boxes for the input layers
@@ -469,7 +537,6 @@ function draw() {
 
 function goForth() {
     myNetwork.state = 'forward';
-    newVals = [];
     for (i in myNetwork.inBoxes) {
         myNetwork.neurons[i].val = myNetwork.inBoxes[i].value();
     }
@@ -477,7 +544,24 @@ function goForth() {
 }
 
 function backProp() {
-    myNetwork.state = 'backward'
+    myNetwork.state = 'backward';
     myNetwork.backprop();
+}
+
+function batchTime() {
+    noLoop();
+    for (i in myNetwork.inBoxes) {
+        myNetwork.neurons[i].val = myNetwork.inBoxes[i].value();
+    }
+    myNetwork.state = 'batch';
+    numBatch = parseInt(batchIn.value());
+    console.log("starting batch");
+    for (i = 0; i < numBatch; i++) {
+        myNetwork.feedforward();
+        myNetwork.backprop();
+        console.log('next batch');
+    }
+    console.log('ending batch');
+    loop();
 }
 
