@@ -124,13 +124,15 @@ var Neuron = function (location, bias, value) {
     if (this.backconnects.length != 0) {
         push();
             fill(0, 102, 153);
-            text("b= "+Math.round(this.bias * 10000) / 10000, this.location.x - 30, this.location.y + 35);
+            textSize(14);
+            text("b= "+Math.round(this.bias * 10000) / 10000, this.location.x - 26, this.location.y + 35);
         pop();
     }
     if (this.sig){
         push();
             fill(0, 102, 153);
-            text("\u03c3= "+Math.round(this.sig * 1000000)/1000000, this.location.x - 30, this.location.y-32);
+            textSize(14);
+            text("\u03c3= "+Math.round(this.sig * 1000000)/1000000, this.location.x - 26, this.location.y-32);
         pop();
     }
     this.r = lerp(this.r, 32, 0.1);
@@ -147,13 +149,15 @@ var Neuron = function (location, bias, value) {
     if (this.backconnects.length != 0) {
         push();
             fill(0, 102, 153);
-            text("b= "+Math.round(this.bias * 10000) / 10000, this.location.x - 30, this.location.y + 35);
+            textSize(14);
+            text("b= "+Math.round(this.bias * 10000) / 10000, this.location.x - 26, this.location.y + 35);
         pop();
     }
     if (this.sig){
         push();
             fill(0, 102, 153);
-            text("\u03c3= "+Math.round(this.sig * 1000000)/1000000, this.location.x - 30, this.location.y-32);
+            textSize(14);
+            text("\u03c3= "+Math.round(this.sig * 1000000)/1000000, this.location.x - 26, this.location.y-32);
         pop();
     }
     
@@ -261,7 +265,7 @@ var Connection = function(a, b, weight) {
         } else {
             rotate(angle);
         }
-        fill(190, 133, 43);
+        fill(245, 81, 55);
         textSize(18);
         strokeWeight(3);
         text(Math.round(this.weight*10000)/10000,-20,0);
@@ -299,7 +303,7 @@ var Connection = function(a, b, weight) {
         } else {
             rotate(angle);
         }
-        fill(0, 148, 18);
+        fill(34, 214, 37);
         textSize(18);
         strokeWeight(3);
         text(Math.round(this.weight*10000)/10000,-20,0);
@@ -476,7 +480,7 @@ function setup() {
     var forward = createButton('Forward');
     forward.position(windowWidth - (windowWidth*.4), windowHeight - (windowHeight*.1));
     forward.mousePressed(goForth);
-    forward.addClass("btn btn-primary bg-blue");
+    forward.addClass("btn btn-primary bg-green");
     var backward = createButton('Backprop');
     backward.position(windowWidth - (windowWidth*.65), windowHeight - (windowHeight*.1));
     backward.mousePressed(backProp);
