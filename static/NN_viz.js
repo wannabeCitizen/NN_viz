@@ -8,6 +8,7 @@
 
 var myNetwork;
 var batchIn;
+var batchTag;
 
 function sigmoid(z){
     return 1.0/(1.0+Math.exp(-z));
@@ -90,6 +91,7 @@ var Neuron = function (location, bias, value) {
             this.backconnects[bc].backprop(dsig);
         }
     }
+    this.batch = false;
   }
   
   this.fire = function() {
@@ -108,6 +110,7 @@ var Neuron = function (location, bias, value) {
             this.connections[c].feedforward(this.val);
         }
     }
+    this.batch = false;
   }
 
   this.backDisplay = function() {
@@ -258,7 +261,7 @@ var Connection = function(a, b, weight) {
         } else {
             rotate(angle);
         }
-        fill(255, 111, 99);
+        fill(190, 133, 43);
         textSize(18);
         strokeWeight(3);
         text(Math.round(this.weight*10000)/10000,-20,0);
@@ -296,7 +299,7 @@ var Connection = function(a, b, weight) {
         } else {
             rotate(angle);
         }
-        fill(37, 219, 90);
+        fill(0, 148, 18);
         textSize(18);
         strokeWeight(3);
         text(Math.round(this.weight*10000)/10000,-20,0);
@@ -470,16 +473,22 @@ function setup() {
 
     //Make these percentages later
     var forward = createButton('Forward');
-    forward.position(windowWidth - 600, windowHeight - 50);
+    forward.position(windowWidth - (windowWidth*.4), windowHeight - (windowHeight*.1));
     forward.mousePressed(goForth);
+    forward.addClass("btn btn-primary bg-blue");
     var backward = createButton('Backprop');
-    backward.position(windowWidth - 800, windowHeight - 50);
+    backward.position(windowWidth - (windowWidth*.65), windowHeight - (windowHeight*.1));
     backward.mousePressed(backProp);
-    var batch = createButton('Batch');
-    batchIn = createInput(20);
-    batchIn.position(windowWidth - 300, windowHeight - 50);
-    batch.position(windowWidth - 400, windowHeight - 50);
-    batch.mousePressed(batchTime);
+    backward.addClass("btn btn-primary bg-red");
+    // var batch = createButton('Batch');
+    // batchIn = createInput(20);
+    // batchIn.position(windowWidth - 300, windowHeight - 50);
+    // batch.position(windowWidth - 400, windowHeight - 50);
+    // batch.mousePressed(batchTime);
+    // batchTag = createP("batch running");
+    // batchTag.position(windowWidth - 300, windowHeight - 20);
+    // batchTag.hide();
+
 
 
     //Setting up text boxes for the input layers
@@ -487,6 +496,7 @@ function setup() {
     for (i = 0; i<layers[0]; i++){
         rando = Math.round(random(-1,1)*10000)/10000.0;
         input = createInput(rando);
+        input.attribute("style", "height:1rem; width:6rem");
         inLayers[i] = input;
     }
 
@@ -497,12 +507,12 @@ function setup() {
     for (i in layers){
         currLayer ++;
         for (var j = 0; j<layers[i]; j++){
-            x = (currLayer * width) / 4;
-            y = ((j+1)*height) / (layers[i] + 1);
+            x = (currLayer * windowWidth) / 4;
+            y = ((j+1)*windowHeight) / (layers[i] + 1);
 
             if (currLayer == 1) {
                 input = inLayers[j];
-                input.position(x-100, y-32);
+                input.position(x-(windowWidth * .12), y-(windowWidth*.03));
                 n = new Neuron(createVector(x,y), random(-1, 1), input.value());
                 neurons[currLayer-1].push(n);
                 myNetwork.addNeuron(n);
@@ -548,20 +558,29 @@ function backProp() {
     myNetwork.backprop();
 }
 
-function batchTime() {
-    noLoop();
-    for (i in myNetwork.inBoxes) {
-        myNetwork.neurons[i].val = myNetwork.inBoxes[i].value();
-    }
-    myNetwork.state = 'batch';
-    numBatch = parseInt(batchIn.value());
-    console.log("starting batch");
-    for (i = 0; i < numBatch; i++) {
-        myNetwork.feedforward();
-        myNetwork.backprop();
-        console.log('next batch');
-    }
-    console.log('ending batch');
-    loop();
-}
+// function runBatch() {
+//     myNetwork.feedforward();
+//     setTimeout(myNetwork.backProp, 100);
+// }
+
+// function batchTime() {
+//     noLoop();
+//     batchTag.html('batch running');
+//     batchTag.show();
+//     for (i in myNetwork.inBoxes) {
+//         myNetwork.neurons[i].val = myNetwork.inBoxes[i].value();
+//     }
+//     myNetwork.state = 'batch';
+//     numBatch = parseInt(batchIn.value());
+//     console.log("starting batch");
+//     for (i = 0; i < numBatch; i++) {
+//         setTimeout(runBatch, 200)
+//         console.log('next batch');
+//     }
+//     console.log('ending batch');
+//     batchTag.html("Batch Complete");
+//     setTimeout(batchTag.hide, 3000);    
+//     loop();
+//     goForth();
+// }
 
