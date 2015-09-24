@@ -242,11 +242,11 @@ var Connection = function(a, b, weight) {
     stroke(0);
     push();
         strokeWeight(3);
-        seed = map(this.weight, -1, 1, 0, 1);
-        from = color(42, 71, 255);
-        to = color(229, 119, 73);
-        hue = lerpColor(from, to, seed);
-        stroke(hue);
+        // seed = map(this.weight, -1, 1, 0, 1);
+        // from = color(100, 0, 255);
+        // to = color(255, 13, 101);
+        // hue = lerpColor(from, to, seed);
+        stroke(0);
         line(this.a.location.x, this.a.location.y, this.b.location.x, this.b.location.y);
     pop();
     fill(0);
@@ -281,11 +281,11 @@ var Connection = function(a, b, weight) {
     stroke(0);
     push();
         strokeWeight(3);
-        seed = map(this.weight, -1, 1, 0, 1);
-        from = color(42, 71, 255);
-        to = color(229, 119, 73);
-        hue = lerpColor(from, to, seed);
-        stroke(hue);
+        // seed = map(this.weight, -1, 1, 0, 1);
+        // from = color(25, 0, 255);
+        // to = color(255, 17, 9);
+        // hue = lerpColor(from, to, seed);
+        stroke(0);
         line(this.a.location.x, this.a.location.y, this.b.location.x, this.b.location.y);
     pop();
     fill(0);
@@ -325,6 +325,7 @@ var Network = function (inBoxes, layers, neurons, connections, location) {
   this.targetlocs = [];
   this.targets = [0, 1, 0];
   this.outputs = [];
+  this.start = false;
 
   this.createTargets = function () {
 
@@ -535,6 +536,7 @@ function setup() {
     }
 
     myNetwork.createTargets();
+    myNetwork.feedforward();
 
 
 }
@@ -546,6 +548,7 @@ function draw() {
 }
 
 function goForth() {
+    myNetwork.start = true;
     myNetwork.state = 'forward';
     for (i in myNetwork.inBoxes) {
         myNetwork.neurons[i].val = myNetwork.inBoxes[i].value();
